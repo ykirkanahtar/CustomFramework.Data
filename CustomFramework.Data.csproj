@@ -13,7 +13,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\CustomFramework\CustomFramework.Utils\CustomFramework.Utils.csproj" />
-    <ProjectReference Include="..\..\CustomFramework\CustomFramework.Data.Contracts\CustomFramework.Data.Contracts.csproj" />
+    <ProjectReference Include="..\CustomFramework.Utils\CustomFramework.Utils.csproj" />
+    <ProjectReference Include="..\CustomFramework.Data.Contracts\CustomFramework.Data.Contracts.csproj" />
   </ItemGroup>  
 </Project>
