@@ -6,6 +6,7 @@ using CustomFramework.Data.Models;
 using CustomFramework.Data.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
+using System.Reflection;
 
 //https://github.com/Arch/UnitOfWork/blob/master/src/Microsoft.EntityFrameworkCore.UnitOfWork/UnitOfWork.cs
 namespace CustomFramework.Data
@@ -63,8 +64,65 @@ namespace CustomFramework.Data
             return DbContext.SaveChanges();
         }
 
+        public List<EntityChange> GetChanges<TEntity>()
+        {
+            var entityChanges = new List<EntityChange>();
+
+            var modifiedEntities = DbContext.ChangeTracker.Entries()
+                        .Where(p => p.State == EntityState.Modified || p.State == EntityState.Added || p.State == EntityState.Deleted || p.State == EntityState.Modified || p.State == EntityState.Detached).ToList();
+
+            foreach (var change in modifiedEntities)
+            {
+                var entityName = change.Entity.GetType().Name;
+                var entityIdObj = change.Property("Id").CurrentValue;
+                long? entityId = null;
+
+                if (entityIdObj != null) entityId = Convert.ToInt64(entityIdObj.ToString());
+
+                foreach (var prop in change.Entity.GetType().GetTypeInfo().DeclaredProperties)
+                {
+                    if (!prop.GetGetMethod().IsVirtual)
+                    {
+                        object oldValueObj = null;
+                        object newValueObj = null;
+
+                        if (change.State == EntityState.Deleted || change.State == EntityState.Modified)
+                        {
+                            oldValueObj = change.GetDatabaseValues().GetValue<object>(prop.Name);
+                        }
+
+                        if (change.State == EntityState.Added || change.State == EntityState.Modified)
+                        {
+                            newValueObj = change.Property(prop.Name).CurrentValue;
+                        }
+
+                        var newValue = newValueObj == null ? string.Empty : newValueObj.ToString();
+                        var oldValue = oldValueObj == null ? string.Empty : oldValueObj.ToString();
+
+                        if (oldValue != newValue)
+                        {
+                            entityChanges.Add(new EntityChange
+                            {
+                                EntityName = entityName,
+                                FieldName = prop.Name,
+                                IdValue = entityId,
+                                EntityState = change.State,
+                                OldValue = oldValue,
+                                NewValue = newValue
+                            });
+                        }
+                    }
+                }
+            }
+
+            return entityChanges;
+        }
+
+
+
         public async Task<int> SaveChangesAsync()
         {
+            OnBeforeSaving();
             return await DbContext.SaveChangesAsync();
         }
 
@@ -99,6 +157,27 @@ namespace CustomFramework.Data
             }
         }
 
+        public void OnBeforeSaving()
+        {
+            var entries = DbContext?.ChangeTracker?.Entries();
+
+            if (entries == null)
+            {
+                return;
+            }
+
+            foreach (var entry in entries)
+            {
+                // get all the properties and are of type string
+                var propertyValues = entry.CurrentValues.Properties.Where(p => p.ClrType == typeof(string));
+
+                foreach (var prop in propertyValues)
+                {
+                    // access the correct column by it's name and trim the value if it's not null
+                    if (entry.CurrentValues[prop.Name] != null) entry.CurrentValues[prop.Name] = entry.CurrentValues[prop.Name].ToString().Trim();
+                }
+            }
+        }
         public void Dispose()
         {
             Dispose(true);

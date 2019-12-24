@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using CustomFramework.Data.Models;
@@ -8,9 +9,11 @@ namespace CustomFramework.Data
 {
     public interface IUnitOfWork : IDisposable
     {
-        BaseRepository<TEntity,TKey> GetRepository<TEntity, TKey>() where TEntity : BaseModel<TKey>;
+        BaseRepository<TEntity, TKey> GetRepository<TEntity, TKey>() where TEntity : BaseModel<TKey>;
 
         BaseRepositoryNonUser<TEntity, TKey> GetRepositoryNonUser<TEntity, TKey>() where TEntity : BaseModelNonUser<TKey>;
+
+        List<EntityChange> GetChanges<TEntity>();
         
         int SaveChanges();
 

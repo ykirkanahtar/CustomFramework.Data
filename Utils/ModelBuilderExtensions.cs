@@ -1,6 +1,7 @@
 ﻿using CustomFramework.Data.Enums;
 using CustomFramework.Utils;
 using Microsoft.EntityFrameworkCore;
+using System.Linq;
 
 namespace CustomFramework.Data.Utils
 {
@@ -17,7 +18,12 @@ namespace CustomFramework.Data.Utils
             if (databaseProvider == DatabaseProvider.MsSql)
             {
                 modelBuilder.HasDefaultSchema("dbo");
-            }            
+            }
+
+            foreach (var relationship in modelBuilder.Model.GetEntityTypes().SelectMany(e => e.GetForeignKeys()))
+            {
+                relationship.DeleteBehavior = DeleteBehavior.Restrict;
+            }
         }
 
         public static void BoolToInConverterForMySql(this ModelBuilder modelBuilder)
